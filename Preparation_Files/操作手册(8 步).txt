@@ -1,0 +1,64 @@
+📘 操作手册(8 步)
+Step 1: 准备项目文件夹
+在 Windows 上随便找个位置(比如 D:\Projects\),新建文件夹 Exam-in-Mind。把 SPEC.md 和 PLAN.md 放进去。文件夹里现在应该有这两个 .md 文件。
+Step 2: 装 Claude Code
+如果还没装,去 Anthropic 官网按指引装好 Claude Code(npm 全局安装)。装完打开 PowerShell 或 Windows Terminal,cd 到你的项目文件夹:
+powershellcd D:\Projects\Exam-in-Mind
+然后输入 claude 启动。
+Step 3: 准备 API key
+你现在不用立刻配置,但提前准备好两个 key:
+
+Anthropic API key: 从 console.anthropic.com 申请,形如 sk-ant-...
+Brave Search API key: 从 brave.com/search/api 申请(免费档每月 2000 次够用),形如 BSA...
+
+Phase 1 完成后,Claude Code 会创建 .env.example,你照着创建一个 .env 文件填进去就行。
+Step 4: 启动开发
+在项目文件夹里启动 Claude Code 后,复制上面 KICKOFF.md 的整段内容作为第一条消息发出去。
+Claude Code 会:
+
+读 SPEC.md 和 PLAN.md
+用中文复述项目目标和 Phase 划分
+停下来等你确认
+
+这一步特别重要:仔细看它复述的内容。如果它说错了任何关键点(比如把 Brave Search 说成 Google,或者要做 Web 界面),立刻指出并让它重读。确认无误后回复:
+
+通过,开始 Phase 1。
+
+Step 5: 走完每个 Phase 的循环
+对每个 Phase,重复这个流程:
+
+Claude Code 宣布开始: "我现在开始 Phase X,将创建文件 ..." → 你回 "好,开始" 或者补充要求
+它生成代码: 看着它创建/修改文件,大致看下结构
+它给出完成报告: 列出文件清单 + 验收命令
+你执行验收命令: 在另一个终端窗口运行(不要关 Claude Code 那个)
+
+命令报错 → 把报错原文贴回去,说"这个报错请先解释原因再修复"
+命令成功 → 看下产出是否符合 PLAN.md 的验收标准
+
+
+你回复: "Phase X 通过,开始 Phase X+1" 或 "有问题: ..."
+
+Step 6: 处理意外情况
+情况怎么办Claude Code 想跳过验收一次做多个 Phase立刻打断:"停。按 PLAN 一次只做一个 Phase,先完成 Phase X 等我验收"它想加 SPEC 没列的依赖拒绝:"SPEC 第 2 节没有这个依赖,请用列表里的方案"它想做 Web 界面/数据库等拒绝:"SPEC 第 13 节明确不做这个"报错看不懂直接贴报错给它,加一句"请先解释原因,再修"它问你拿主意,你也不知道回 "按 SPEC 走" 或 "你给两个方案我选"跑到 Phase 4 才发现 SPEC 写错了让它先停,你修改 SPEC.md,告诉它 "SPEC 已更新,请重读相关部分再继续"
+Step 7: 第一次跑完整流程
+Phase 8 验收时会真正调用 API 生成 AP Calculus BC 的完整知识树,大概需要:
+
+时间: 5-15 分钟(取决于网络和模型)
+API 费用: Sonnet 大约 $1-3,Haiku 大约 $0.2-0.5
+建议: 第一次先在 config.yaml 里把 model 改成 claude-haiku-4-5 跑通流程,确认没问题再换 Sonnet 跑正式版
+
+Step 8: 浏览结果
+跑完后,去 output/ap_calculus_bc/ 文件夹:
+
+双击 site/index.html → 浏览器打开复习网站
+VS Code 打开 full.md → 单文件版本
+想改某个章节 → 编辑 tree.json 对应节点 → 重跑命令(它会从缓存继续)
+
+
+🎯 关键提醒
+
+不要心急。一个 Phase 一个 Phase 来,看上去慢,实际上比"一次性丢需求然后调试 8 小时"快得多。
+你是甲方。Claude Code 写代码,但架构决策权在你。它越界你就拉回来。
+看不懂代码没关系。看得懂"它在做什么 phase、产出了什么文件、验收命令跑没跑通"就够了。
+保留每个 Phase 的对话记录。如果 Phase 5 出大问题想回退,你能找到 Phase 4 完成时的状态。Claude Code 本身有 git 集成,Phase 1 时可以让它顺便 git init。
+遇到 Brave / Anthropic 的 API 报错,99% 是 key 没填对或额度问题,先检查 .env。

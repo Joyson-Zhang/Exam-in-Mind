@@ -1,0 +1,32 @@
+# Exam-in-Mind 运行时配置
+# 命令行参数会覆盖此文件中的对应设置
+
+# Anthropic API 配置
+llm:
+  model: "claude-haiku-4-5-20251001"   # 测试时可改为 claude-haiku-4-5
+  max_tokens: 4096
+  temperature: 0.3              # 知识类任务用低温度
+
+# Brave Search 配置
+search:
+  enabled: true
+  provider: "brave"
+  results_per_query: 5
+
+# 知识树参数
+tree:
+  max_depth: 3                  # 章/节/知识点
+  level_1_count_hint: "8-12"   # 仅作为 prompt 提示
+  level_2_count_hint: "4-8"
+  level_3_count_hint: "3-6"
+
+# 输出配置
+output:
+  base_dir: "./output"
+  formats: ["mkdocs", "markdown"]  # 同时生成两种格式
+  language: "zh"                    # 默认中文,命令行可覆盖
+
+# 日志配置
+logging:
+  level: "INFO"
+  file: "run.log"

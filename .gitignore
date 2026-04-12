@@ -1,0 +1,41 @@
+# 敏感配置
+.env
+
+# 生成产出物(可能很大)
+output/
+
+# Python 编译产物
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# 虚拟环境
+.venv/
+venv/
+env/
+ENV/
+
+# 安装产物
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# 测试缓存
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db

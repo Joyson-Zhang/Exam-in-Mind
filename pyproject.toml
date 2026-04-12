@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "exam-in-mind"
+version = "0.1.0"
+description = "命令行智能体:自动构建考试知识树并生成复习站点"
+requires-python = ">=3.10"
+dependencies = [
+    "anthropic>=0.40.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "python-dotenv>=1.0.0",
+    "pyyaml>=6.0",
+    "click>=8.1.0",
+    "rich>=13.0.0",
+    "httpx>=0.27.0",
+    "mkdocs-material>=9.5.0",
+    "pymdown-extensions>=10.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+]
+
+[project.scripts]
+exam-in-mind = "exam_in_mind.main:cli"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["exam_in_mind*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
