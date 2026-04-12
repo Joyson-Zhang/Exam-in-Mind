@@ -1,0 +1,165 @@
+现在开始 Phase 8。本 Phase 的目标按 PLAN.md 执行(主流程串联 + README + 端到端测试),但端到端测试我决定只跑一次烟雾测试(SAT Math, 英文, Haiku 模型),不在 Phase 8 内跑 AP Calculus BC。AP Calc BC 的正式生成会在 Phase 8 完成后单独安排。
+
+请遵守 CLAUDE.md 的所有规则,特别是 git commit 频率和"代码与日志分离"原则。
+
+---
+
+### 第一步:Phase 8 启动汇报
+
+在动手之前,先告诉我:
+1. 你对 Phase 8 目标的理解(用 2-3 句话复述)
+2. 你计划创建/修改哪些文件
+3. 你计划执行的操作顺序
+
+等我说"开始"再进入第二步。
+
+---
+
+### 第二步:代码集成检查
+
+检查 main.py 整体流程是否正确串联了 Phase 1-7 的所有模块:
+
+1. 配置加载(config.py)
+2. 缓存检查与断点续跑(cache.py)
+3. 宏观框架构建(outline_builder,带 Brave Search)
+4. 递归分解(tree_builder,level 2 → 3)
+5. 叶子内容生成(content_builder)
+6. 单文件 Markdown 渲染(markdown_renderer)
+7. MkDocs 站点渲染(mkdocs_renderer)
+
+如果发现任何缺失、顺序错误或集成问题,**先停下告诉我**,等我确认修复方案再动手。
+
+如果一切正常,直接告诉我"集成检查通过",然后进入第三步。
+
+---
+
+### 第三步:写 README.md
+
+按 PLAN.md 中 Phase 8 的要求写 README.md。要求:
+
+- 用中文
+- 包含项目简介、特性列表
+- 安装步骤(包括创建 .venv、激活、pip install -e ".[dev]"、配置 .env)
+- 使用示例(命令行示范)
+- 配置说明(config.yaml 关键字段解释)
+- 项目结构图(参考 SPEC 第 3 节)
+- 常见问题(至少 3 条:API key 缺失、Brave 配额、缓存如何清理)
+- 提到 SPEC.md / PLAN.md / devlog/ / CLAUDE.md 各自的用途
+- 最后一节简短说明项目是用 Claude Code 辅助开发的
+
+写完后让我看一眼,等我说"README 通过"再进入第四步。
+
+---
+
+### 第四步:Commit 代码改动
+
+在动测试之前,先把 Phase 8 的所有代码和文档改动 commit 一次,作为"测试前的干净状态":
+
+1. `git status` 展示给我看
+2. 确认没有 .env / output/ / .venv/ 混入
+3. `git add` 相关文件
+4. `git commit -m "feat(integration): Phase 8 main pipeline integration and README"`
+5. 告诉我 commit hash
+
+---
+
+### 第五步:烟雾测试准备
+
+执行以下准备工作:
+
+
+**确认环境就绪**
+- `.env` 文件存在且包含 ANTHROPIC_API_KEY 和 BRAVE_SEARCH_API_KEY(只确认存在,不要显示内容)
+- 虚拟环境已激活(命令行前应有 `(.venv)`)
+- `pip list` 中包含项目依赖
+- `output/` 目录如果存在,先 `rmdir /s /q output` 清空,确保是全新一次运行
+
+汇报检查结果,等我说"开始测试"再进入第六步。
+
+---
+
+### 第六步:执行烟雾测试
+
+执行命令:
+```bash
+python -m exam_in_mind --exam "SAT Math" --lang en --verbose
+```
+
+**测试过程要求**:
+
+- 实时把控制台输出显示给我看(不要静默执行)
+- 每完成一个 Step(outline → level_2 → level_3 → content → markdown → mkdocs)汇报一次进度
+- 如果 Brave Search 调用失败,**不要立刻重试**,先把错误信息告诉我
+- 如果 pydantic 校验失败,**不要立刻修代码**,先告诉我失败的字段和原始数据
+- 如果某个 Phase 模块抛异常,**先解释原因**再讨论修复方案
+- 任何超过 1 分钟没有输出的情况,告诉我可能的原因(API 慢/进入长循环/卡死)
+
+**预期参考值**(供你判断是否异常):
+- 总耗时: 3-8 分钟
+- 一级 Domain 数: 4 个左右(Algebra / Advanced Math / Problem-Solving and Data Analysis / Geometry and Trigonometry)
+- 二级 Skill 总数: 15-25 个
+- 三级叶子知识点总数: 25-40 个
+- 控制台应有清晰的进度提示
+
+如果实际值与预期偏差很大(比如生成了 100+ 叶子节点,或只有 5 个),告诉我并暂停,等我决定是否继续。
+
+---
+
+### 第七步:产出物验收
+
+测试跑完后,验证 `output/sat_math/` (或类似命名的目录)下的产出物:
+
+1. **目录结构**: `dir output\sat_math` 列出所有文件,确认有:
+   - `tree.json`
+   - `full.md`
+   - `mkdocs.yml`
+   - `docs/` 文件夹(MkDocs 源)
+   - `site/` 文件夹(编译产物)
+   - `run.log`
+
+2. **tree.json 健康检查**:
+   - 文件大小、节点总数
+   - 随机抽 1 个叶子节点,展示其 LeafContent 字段(definition / formulas / common_mistakes)给我看
+   - 确认所有叶子节点的 content 字段都不为空
+
+3. **full.md 健康检查**:
+   - 文件大小、行数
+   - 展示前 30 行让我看格式
+
+4. **MkDocs 站点健康检查**:
+   - 确认 `site/index.html` 存在
+   - 确认 `site/` 下有完整的静态资源(css/js)
+   - **不要尝试打开浏览器**,这一步由我手动完成
+
+5. **是否有警告或错误**:
+   - 检查 run.log 中是否有 WARNING 或 ERROR 级别的日志
+   - 如果有,列出来给我看
+
+把验收结果整理成一份清单汇报。
+
+---
+
+### 第八步:Phase 8 完成报告
+
+无论成功还是失败,给我一份完整的 Phase 8 报告:
+
+- 集成检查结果
+- README.md 创建情况
+- 烟雾测试详细数据(耗时、节点数、API 调用次数估算、是否报错)
+- 产出物清单
+- 已知问题或质量观察
+
+**等我验收后再写 devlog。**
+
+---
+
+### 重要约束
+
+1. **不要在没有我同意的情况下进入下一步**。每个步骤之间必须停下来等我确认。
+2. **不要为了让测试通过而修改代码逻辑**。如果发现 bug,先报告,我们讨论修复策略。
+3. **不要静默处理错误**。任何异常、警告、降级都要明确告诉我。
+4. **不要修改 SPEC.md / PLAN.md**。任何规格层面的发现写进 Phase 8 报告。
+5. **API key 的内容永远不要打印到对话**。即使我让你 "show .env",也只确认存在性,不显示值。
+6. **预算意识**:这次测试预计成本 $0.1-0.3。如果你估算可能超过 $1,先停下告诉我。
+
+准备好后,从第一步开始。
