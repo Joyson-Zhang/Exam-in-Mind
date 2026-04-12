@@ -494,6 +494,7 @@ def _generate_custom_css(docs_dir: Path) -> None:
 
     包含：
         - 隐藏 footer（file:// 协议下遮挡侧边栏底部）
+        - 侧边栏滚动修复（覆盖 height:0 和 overflow:hidden）
         - 侧边栏底部留白
         - 顶部 tab 导航栏滚动箭头按钮样式
     """
@@ -505,6 +506,23 @@ def _generate_custom_css(docs_dir: Path) -> None:
    且 "Made with Material for MkDocs" 对本地知识树无实际用途，直接隐藏 */
 .md-footer {
     display: none;
+}
+
+/* ── 侧边栏滚动修复 ──
+   Material 主题在桌面端设置 .md-sidebar { height: 0 }（依赖 JS 动态计算），
+   在移动端设置 .md-sidebar__scrollwrap { overflow: hidden }，
+   两者都导致 file:// 协议下侧边栏无法正常滚动。 */
+
+/* 桌面端：设置明确高度，使 scrollwrap 有可滚动的容器边界 */
+@media screen and (min-width: 76.25em) {
+    .md-sidebar {
+        height: calc(100vh - 3.6rem) !important;
+    }
+}
+
+/* 所有尺寸：强制启用纵向滚动 */
+.md-sidebar__scrollwrap {
+    overflow-y: auto !important;
 }
 
 /* 侧边栏底部留白，确保最后几个导航条目可滚动到可见区域 */
