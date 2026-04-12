@@ -327,10 +327,14 @@ def _generate_mkdocs_yml(
         f.write("  - https://unpkg.com/katex@0.16.10/dist/contrib/auto-render.min.js\n")
         f.write("\n")
         f.write("extra_css:\n")
+        f.write("  - stylesheets/custom.css\n")
         f.write("  - https://unpkg.com/katex@0.16.10/dist/katex.min.css\n")
 
     # 生成 KaTeX 初始化脚本
     _generate_katex_js(docs_dir=output_dir / "docs")
+
+    # 生成自定义 CSS（修复 footer 布局等）
+    _generate_custom_css(docs_dir=output_dir / "docs")
 
     console.print(f"  [dim]已生成: {yml_path}[/dim]")
 
@@ -362,6 +366,32 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 """
     (js_dir / "katex.js").write_text(katex_js, encoding="utf-8")
+
+
+def _generate_custom_css(docs_dir: Path) -> None:
+    """
+    生成 docs/stylesheets/custom.css，修复 MkDocs Material 的布局问题。
+
+    主要修复：
+        - footer 在 file:// 协议下遮挡侧边栏底部内容
+    """
+    css_dir = docs_dir / "stylesheets"
+    css_dir.mkdir(parents=True, exist_ok=True)
+
+    custom_css = """\
+/* 修复 footer 遮挡侧边栏内容的问题 */
+/* footer 使用相对定位，确保不浮在侧边栏上方 */
+.md-footer {
+    position: relative;
+    z-index: 1;
+}
+
+/* 为侧边栏底部增加内边距，避免最后几个条目被 footer 遮挡 */
+.md-sidebar--primary .md-sidebar__scrollwrap {
+    padding-bottom: 3rem;
+}
+"""
+    (css_dir / "custom.css").write_text(custom_css, encoding="utf-8")
 
 
 def _run_mkdocs_build(output_dir: Path) -> None:

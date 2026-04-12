@@ -15,9 +15,7 @@
 
 from __future__ import annotations
 
-import ast
 import json
-import warnings
 from typing import Any, Callable
 
 from rich.console import Console
@@ -287,8 +285,9 @@ def _flatten_formula_list(formulas: list) -> list[str]:
     需要解析为:
         ['$x^2$', '$y^2$']
 
-    LaTeX 公式中的反斜杠（如 \\frac）在 JSON 中是无效转义，
-    因此 json.loads 可能失败，此时回退到 ast.literal_eval。
+    LaTeX 公式中的单反斜杠（如 \\frac、\\text）在 JSON 中会被误解析为转义序列
+    （\\t → tab、\\f → formfeed 等）。解决方法是先将所有反斜杠转义为双反斜杠，
+    再用 json.loads 解析，这样 JSON 解析器会将 \\\\ 还原为单个 \\。
 
     参数:
         formulas: 原始 formulas 列表
@@ -304,17 +303,16 @@ def _flatten_formula_list(formulas: list) -> list[str]:
 
         stripped = item.strip()
         if stripped.startswith("[") and stripped.endswith("]"):
-            # 尝试解析为 JSON 数组
             parsed = None
+            # 先尝试直接 JSON 解析（适用于已正确转义的情况）
             try:
                 parsed = json.loads(stripped)
             except (json.JSONDecodeError, ValueError):
-                # LaTeX 转义导致 JSON 解析失败，回退到 ast.literal_eval
+                # LaTeX 反斜杠导致失败，先转义所有 \ 再解析
                 try:
-                    with warnings.catch_warnings():
-                        warnings.simplefilter("ignore")
-                        parsed = ast.literal_eval(stripped)
-                except (ValueError, SyntaxError):
+                    escaped = stripped.replace("\\", "\\\\")
+                    parsed = json.loads(escaped)
+                except (json.JSONDecodeError, ValueError):
                     pass
 
             if isinstance(parsed, list):
