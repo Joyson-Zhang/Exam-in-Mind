@@ -1,0 +1,137 @@
+我要给项目的开发流程加入一套 git 备份与日志独立规则,请按以下步骤执行:
+
+### 第一步:更新 PLAN.md 的"通用规则"章节
+
+在 PLAN.md 的"通用规则(每个 Phase 都适用)"章节追加以下内容(作为新的第 6-9 条):
+
+---
+
+**6. Git Commit 规则**
+
+每个 Phase 必须严格遵守"代码与日志分离 commit"原则。具体如下:
+
+**6.1 强制 commit 时机(以下时机必须立刻 commit,无需用户提醒):**
+
+- 每个 Phase 开始前:如果工作区有未提交改动,先 commit 锁定上一个状态
+- 每个新文件创建并写完初版后
+- 任何破坏性操作前(重写超过 50% 的现有文件、删除文件、重构目录)
+- 每次成功跑通一个验收命令后
+- 每次 bug 修复完成后
+- 在上一次存档后连续工作超过 30 分钟时(兜底机制)
+- Phase 内每完成一个明显的子任务时
+- Phase 最终完成时(代码 commit + 日志 commit + 打 tag)
+
+**6.2 commit message 格式:**
+
+```
+<类型>(<范围>): <简短描述>
+```
+
+类型必须是以下之一:
+- `feat`: 新功能
+- `fix`: bug 修复
+- `refactor`: 重构(不改功能)
+- `docs`: 文档或 devlog
+- `chore`: 依赖、配置等杂项
+- `test`: 测试相关
+- `wip`: 临时存档(仅在 30 分钟兜底 commit 时使用)
+
+范围用模块名(如 `builders`, `renderers`, `models`),或文档类型(如 `devlog`, `spec`)。
+
+**6.3 代码与日志分离原则:**
+
+代码改动和 devlog 改动**永远不能混在同一个 commit 里**。具体做法:
+
+- 写代码时:`git add` 时只 add 代码相关文件,不要 add devlog/
+- 写日志时:`git add devlog/` 单独提交
+- Phase 完成时,顺序是:先 commit 代码 → 用户验收 → 写 devlog → commit devlog → 打 tag
+
+**6.4 Phase 完成的标准 commit 序列:**
+
+```bash
+# 1. 代码完成,所有验收通过后
+git add <代码相关文件>
+git commit -m "feat(<模块>): Phase X implementation complete"
+
+# 2. 等待用户验收
+
+# 3. 用户验收通过后,写 devlog
+# (此时只修改 devlog/ 下的文件)
+
+# 4. 提交 devlog
+git add devlog/
+git commit -m "docs(devlog): Phase X retrospective"
+
+# 5. 打 tag 标记 Phase 完成
+git tag phase-X-complete
+
+# 6. 向用户汇报:本 Phase 的代码 commit hash、devlog commit hash、tag 名称
+```
+
+**6.5 commit 前必检项:**
+
+每次 commit 前必须执行 `git status` 并确认:
+- `.env` 文件不在待提交列表中
+- `output/` 目录不在待提交列表中
+- `.venv/` 不在待提交列表中
+- 待提交的文件类型与 commit message 的"类型"一致(代码 commit 不混进日志,反之亦然)
+
+如果发现异常,停下来询问用户,不要擅自处理。
+
+---
+
+**7. Tag 规则**
+
+- 每个 Phase 完成时打一个 tag,格式 `phase-X-complete`
+- 重要里程碑可以打额外的 tag,如 `v0.1-mvp`、`first-successful-run`
+- 打 tag 前确认当前 commit 已经是 Phase 的最终状态
+
+---
+
+**8. 工作区保护**
+
+- 严禁使用 `git reset --hard`,任何回退操作必须先与用户确认
+- 严禁使用 `git push --force`(虽然我们目前没有远程仓库)
+- 严禁使用 `git clean -fd` 删除未追踪文件,除非用户明确要求
+
+---
+
+**9. 应急恢复**
+
+如果用户表示"想回到之前的状态",默认采用"非破坏性回退"策略:
+
+1. 先 `git log --oneline` 让用户选择目标 commit
+2. 询问用户:是要"完全回退所有文件"还是"只回退代码,保留 devlog"?
+3. 推荐"只回退代码"方案,因为它能保留失败经验作为博客素材
+4. 操作前再次确认,用户明确同意后才执行
+5. 操作后立刻 commit 当前状态作为新的历史节点(message: `chore(rollback): rollback code to <hash>, retain devlog`)
+
+---
+
+### 第二步:补打历史 tag
+
+虽然我们是在 Phase 7 之后才补的 git,但请为现有的首次 commit 打一个追溯 tag:
+
+```bash
+git tag phase-1-to-7-baseline
+```
+
+并在 tag 信息里说明这是追溯打的(可以用 `git tag -a phase-1-to-7-baseline -m "Retroactive tag: Phase 1-7 completed before git was initialized"`)。
+
+### 第三步:验证
+
+执行以下命令并向我汇报结果:
+
+1. `git log --oneline` 显示当前所有 commit
+2. `git tag` 显示所有 tag
+3. `cat PLAN.md | grep -A 2 "通用规则"` 或类似命令,确认新规则已写入
+
+### 第四步:汇报
+
+完成上述三步后,给我一份汇报,内容包括:
+- PLAN.md 修改了哪些部分
+- 新增了哪些 tag
+- 当前 git 历史和 tag 列表
+- 你对新规则的理解(用一句话复述每条规则的核心,确保你真的看懂了)
+
+完成后等我确认。
