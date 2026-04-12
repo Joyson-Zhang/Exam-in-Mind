@@ -39,3 +39,4 @@ htmlcov/
 
 # Windows
 Thumbs.db
+.claude/

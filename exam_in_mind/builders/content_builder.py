@@ -15,6 +15,9 @@
 
 from __future__ import annotations
 
+import ast
+import json
+import warnings
 from typing import Any, Callable
 
 from rich.console import Console
@@ -249,6 +252,8 @@ def _parse_leaf_content(data: dict[str, Any], node_id: str) -> LeafContent | Non
         formulas = data.get("formulas", [])
         if not isinstance(formulas, list):
             formulas = [str(formulas)]
+        # 展平：Claude 有时将整个数组序列化成一个字符串（以 '[' 开头），需要尝试 JSON 解析
+        formulas = _flatten_formula_list(formulas)
         # 过滤非字符串项
         formulas = [str(f) for f in formulas if f]
 
@@ -271,6 +276,54 @@ def _parse_leaf_content(data: dict[str, Any], node_id: str) -> LeafContent | Non
     except Exception as e:
         console.print(f"\n  [yellow]警告: [{node_id}] LeafContent 解析失败: {e}[/yellow]")
         return None
+
+
+def _flatten_formula_list(formulas: list) -> list[str]:
+    """
+    展平 formulas 列表中被错误序列化为 JSON 数组字符串的元素。
+
+    Claude 有时会把整个公式数组作为一个字符串返回，如:
+        ['["$x^2$", "$y^2$"]']
+    需要解析为:
+        ['$x^2$', '$y^2$']
+
+    LaTeX 公式中的反斜杠（如 \\frac）在 JSON 中是无效转义，
+    因此 json.loads 可能失败，此时回退到 ast.literal_eval。
+
+    参数:
+        formulas: 原始 formulas 列表
+
+    返回:
+        展平后的字符串列表
+    """
+    result = []
+    for item in formulas:
+        if not isinstance(item, str):
+            result.append(str(item))
+            continue
+
+        stripped = item.strip()
+        if stripped.startswith("[") and stripped.endswith("]"):
+            # 尝试解析为 JSON 数组
+            parsed = None
+            try:
+                parsed = json.loads(stripped)
+            except (json.JSONDecodeError, ValueError):
+                # LaTeX 转义导致 JSON 解析失败，回退到 ast.literal_eval
+                try:
+                    with warnings.catch_warnings():
+                        warnings.simplefilter("ignore")
+                        parsed = ast.literal_eval(stripped)
+                except (ValueError, SyntaxError):
+                    pass
+
+            if isinstance(parsed, list):
+                result.extend(str(f) for f in parsed if f)
+                continue
+
+        result.append(item)
+
+    return result
 
 
 def _noop_dispatcher(tool_name: str, tool_input: dict[str, Any]) -> str:

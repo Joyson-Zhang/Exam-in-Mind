@@ -263,6 +263,7 @@ def _generate_mkdocs_yml(
         "site_name": f"{tree.exam_name} 知识树",
         "docs_dir": "docs",
         "site_dir": "site",
+        "use_directory_urls": False,  # file:// 协议下直接指向 .html 文件
         "theme": {
             "name": "material",
             "language": "zh",
