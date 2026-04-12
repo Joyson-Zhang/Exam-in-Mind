@@ -368,6 +368,7 @@ def _generate_mkdocs_yml(
         # KaTeX CDN + 初始化脚本
         f.write("extra_javascript:\n")
         f.write("  - javascripts/katex.js\n")
+        f.write("  - javascripts/tab-scroll.js\n")
         f.write("  - https://unpkg.com/katex@0.16.10/dist/katex.min.js\n")
         f.write("  - https://unpkg.com/katex@0.16.10/dist/contrib/auto-render.min.js\n")
         f.write("\n")
@@ -378,7 +379,10 @@ def _generate_mkdocs_yml(
     # 生成 KaTeX 初始化脚本
     _generate_katex_js(docs_dir=output_dir / "docs")
 
-    # 生成自定义 CSS（修复 footer 布局等）
+    # 生成 tab 横向滚动按钮脚本
+    _generate_tab_scroll_js(docs_dir=output_dir / "docs")
+
+    # 生成自定义 CSS（修复 footer 布局等 + tab 滚动按钮样式）
     _generate_custom_css(docs_dir=output_dir / "docs")
 
     console.print(f"  [dim]已生成: {yml_path}[/dim]")
@@ -413,12 +417,85 @@ document.addEventListener("DOMContentLoaded", function() {
     (js_dir / "katex.js").write_text(katex_js, encoding="utf-8")
 
 
+def _generate_tab_scroll_js(docs_dir: Path) -> None:
+    """
+    生成 docs/javascripts/tab-scroll.js，为顶部章节导航栏添加左右滚动箭头按钮。
+
+    MkDocs Material 的 navigation.tabs 在章节较多时会溢出，
+    但隐藏了滚动条（scrollbar-width: none），用户难以发现可以滚动。
+    本脚本在 tab 栏两端注入三角形箭头按钮，点击后平滑滚动，
+    并根据滚动位置自动显示/隐藏箭头。
+    """
+    js_dir = docs_dir / "javascripts"
+    js_dir.mkdir(parents=True, exist_ok=True)
+
+    tab_scroll_js = """\
+document.addEventListener("DOMContentLoaded", function () {
+    var tabList = document.querySelector(".md-tabs__list");
+    if (!tabList) return;
+
+    var tabsContainer = document.querySelector(".md-tabs");
+    if (!tabsContainer) return;
+
+    // 滚动步长（每次点击滚动的像素数）
+    var SCROLL_STEP = 200;
+
+    // 创建左箭头按钮
+    var btnLeft = document.createElement("button");
+    btnLeft.className = "md-tabs-scroll md-tabs-scroll--left";
+    btnLeft.setAttribute("aria-label", "向左滚动");
+    btnLeft.innerHTML = "&#9664;";  // ◀
+
+    // 创建右箭头按钮
+    var btnRight = document.createElement("button");
+    btnRight.className = "md-tabs-scroll md-tabs-scroll--right";
+    btnRight.setAttribute("aria-label", "向右滚动");
+    btnRight.innerHTML = "&#9654;";  // ▶
+
+    // 注入到 tabs 容器
+    tabsContainer.style.position = "relative";
+    tabsContainer.appendChild(btnLeft);
+    tabsContainer.appendChild(btnRight);
+
+    // 更新箭头可见性
+    function updateArrows() {
+        var scrollLeft = tabList.scrollLeft;
+        var maxScroll = tabList.scrollWidth - tabList.clientWidth;
+
+        // 左箭头：滚动位置 > 0 时显示
+        btnLeft.style.display = scrollLeft > 2 ? "flex" : "none";
+        // 右箭头：未滚到最右时显示
+        btnRight.style.display = scrollLeft < maxScroll - 2 ? "flex" : "none";
+    }
+
+    // 点击事件
+    btnLeft.addEventListener("click", function () {
+        tabList.scrollBy({ left: -SCROLL_STEP, behavior: "smooth" });
+    });
+    btnRight.addEventListener("click", function () {
+        tabList.scrollBy({ left: SCROLL_STEP, behavior: "smooth" });
+    });
+
+    // 监听滚动事件更新箭头
+    tabList.addEventListener("scroll", updateArrows);
+    // 监听窗口缩放
+    window.addEventListener("resize", updateArrows);
+
+    // 初始化
+    updateArrows();
+});
+"""
+    (js_dir / "tab-scroll.js").write_text(tab_scroll_js, encoding="utf-8")
+
+
 def _generate_custom_css(docs_dir: Path) -> None:
     """
-    生成 docs/stylesheets/custom.css，修复 MkDocs Material 的布局问题。
+    生成 docs/stylesheets/custom.css，修复 MkDocs Material 的布局问题并增强交互。
 
-    主要修复：
-        - footer 在 file:// 协议下遮挡侧边栏底部内容
+    包含：
+        - 隐藏 footer（file:// 协议下遮挡侧边栏底部）
+        - 侧边栏底部留白
+        - 顶部 tab 导航栏滚动箭头按钮样式
     """
     css_dir = docs_dir / "stylesheets"
     css_dir.mkdir(parents=True, exist_ok=True)
@@ -433,6 +510,47 @@ def _generate_custom_css(docs_dir: Path) -> None:
 /* 侧边栏底部留白，确保最后几个导航条目可滚动到可见区域 */
 .md-sidebar__inner {
     padding-bottom: 3rem;
+}
+
+/* ── 顶部 tab 导航栏滚动箭头按钮 ── */
+.md-tabs-scroll {
+    position: absolute;
+    top: 0;
+    width: 2rem;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.7rem;
+    z-index: 2;
+    transition: background-color 0.2s;
+    /* 默认继承 tab 栏背景色 */
+    background-color: var(--md-primary-fg-color);
+}
+
+.md-tabs-scroll:hover {
+    background-color: rgba(0, 0, 0, 0.15);
+}
+
+.md-tabs-scroll--left {
+    left: 0;
+    /* 左侧渐隐效果 */
+    box-shadow: 4px 0 8px rgba(0, 0, 0, 0.1);
+}
+
+.md-tabs-scroll--right {
+    right: 0;
+    /* 右侧渐隐效果 */
+    box-shadow: -4px 0 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 暗色模式下箭头按钮适配 */
+[data-md-color-scheme="slate"] .md-tabs-scroll {
+    background-color: var(--md-primary-fg-color);
+    color: rgba(255, 255, 255, 0.9);
 }
 """
     (css_dir / "custom.css").write_text(custom_css, encoding="utf-8")
