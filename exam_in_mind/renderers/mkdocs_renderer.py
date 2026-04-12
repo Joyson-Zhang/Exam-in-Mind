@@ -174,10 +174,10 @@ def _write_leaf_page(leaf: KnowledgeNode, path: Path) -> None:
 
     c = leaf.content
 
-    # 定义
+    # 定义（清理字面量转义序列）
     lines.append("## 定义")
     lines.append("")
-    lines.append(c.definition)
+    lines.append(_unescape_literal_newlines(c.definition))
     lines.append("")
 
     # 公式
@@ -241,6 +241,19 @@ def _normalize_formula(formula: str) -> str:
 
     # ── Case 3: 完全无 $ 定界符 → 包裹 $...$ ──
     return f"${stripped}$"
+
+
+def _unescape_literal_newlines(text: str) -> str:
+    """
+    将文本中的字面量转义序列 ``\\n`` 转换为真正的换行符。
+
+    LLM 有时在 JSON 字符串中写入字面量 ``\\n``（两个字符: 反斜杠 + n），
+    而非真正的换行符。这些字面量在 Markdown 中会显示为可见的 ``\\n`` 文本。
+
+    使用负向前瞻 ``(?![a-zA-Z])`` 避免误伤 LaTeX 命令
+    （如 ``\\neq``、``\\nu``、``\\nabla`` 等以 ``\\n`` 开头的命令）。
+    """
+    return re.sub(r"\\n(?![a-zA-Z])", "\n", text)
 
 
 def _generate_index(tree: ExamTree, docs_dir: Path) -> None:
@@ -415,6 +428,11 @@ def _generate_custom_css(docs_dir: Path) -> None:
    且 "Made with Material for MkDocs" 对本地知识树无实际用途，直接隐藏 */
 .md-footer {
     display: none;
+}
+
+/* 侧边栏底部留白，确保最后几个导航条目可滚动到可见区域 */
+.md-sidebar__inner {
+    padding-bottom: 3rem;
 }
 """
     (css_dir / "custom.css").write_text(custom_css, encoding="utf-8")
