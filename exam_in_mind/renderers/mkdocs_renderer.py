@@ -185,11 +185,8 @@ def _write_leaf_page(leaf: KnowledgeNode, path: Path) -> None:
         lines.append("## 核心公式")
         lines.append("")
         for formula in c.formulas:
-            stripped = formula.strip()
-            if stripped.startswith("$$") or stripped.startswith("$"):
-                lines.append(f"- {stripped}")
-            else:
-                lines.append(f"- ${stripped}$")
+            normalized = _normalize_formula(formula)
+            lines.append(f"- {normalized}")
         lines.append("")
 
     # 易错点
@@ -209,6 +206,41 @@ def _write_leaf_page(leaf: KnowledgeNode, path: Path) -> None:
         lines.append("")
 
     path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def _normalize_formula(formula: str) -> str:
+    """
+    归一化公式的 LaTeX 定界符，确保输出格式统一。
+
+    LLM 返回的公式格式不一致，需要处理以下情况：
+        1. ``$formula$``           → 已正确，原样返回
+        2. ``$formula$ (说明)``    → 已正确（内含配对 $），原样返回
+        3. ``$$formula$$``         → 已正确，原样返回
+        4. ``$formula``            → 缺闭合 $，补上
+        5. ``formula``             → 完全无定界符，包裹 $...$
+    """
+    stripped = formula.strip()
+    if not stripped:
+        return formula
+
+    # ── Case 1: display 模式 $$...$$ ──
+    if stripped.startswith("$$"):
+        # 检查是否有闭合 $$
+        if "$$" in stripped[2:]:
+            return stripped  # 已正确
+        # 缺闭合 $$，补上
+        return f"{stripped}$$"
+
+    # ── Case 2: 以 $ 开头 ──
+    if stripped.startswith("$"):
+        # 在首字符之后寻找配对的 $
+        if "$" in stripped[1:]:
+            return stripped  # 已有配对 $（可能尾部有说明文字），原样返回
+        # 缺闭合 $，补上
+        return f"{stripped}$"
+
+    # ── Case 3: 完全无 $ 定界符 → 包裹 $...$ ──
+    return f"${stripped}$"
 
 
 def _generate_index(tree: ExamTree, docs_dir: Path) -> None:
@@ -379,16 +411,10 @@ def _generate_custom_css(docs_dir: Path) -> None:
     css_dir.mkdir(parents=True, exist_ok=True)
 
     custom_css = """\
-/* 修复 footer 遮挡侧边栏内容的问题 */
-/* footer 使用相对定位，确保不浮在侧边栏上方 */
+/* 隐藏 footer：file:// 协议下 footer 会遮挡侧边栏底部导航条目，
+   且 "Made with Material for MkDocs" 对本地知识树无实际用途，直接隐藏 */
 .md-footer {
-    position: relative;
-    z-index: 1;
-}
-
-/* 为侧边栏底部增加内边距，避免最后几个条目被 footer 遮挡 */
-.md-sidebar--primary .md-sidebar__scrollwrap {
-    padding-bottom: 3rem;
+    display: none;
 }
 """
     (css_dir / "custom.css").write_text(custom_css, encoding="utf-8")
