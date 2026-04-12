@@ -1,0 +1,272 @@
+本次升级一次性完成两件事:
+(1) 建立版本日志体系
+(2) 发布 v1.0.0
+
+请严格按以下步骤执行,每步完成后简短汇报,等我确认再进入下一步。
+
+### 第一步:现状盘点
+
+在动手之前,先告诉我:
+1. 执行 `git log --oneline` 展示当前所有 commit
+2. 执行 `git tag` 展示当前所有 tag
+3. 执行 `ls devlog/` 展示当前 devlog 目录结构
+4. 确认 AP Calc BC 的产出物路径(应在 output/ 下)
+5. 用 2-3 句话复述你对本次升级的理解
+
+等我说"开始"再进入第二步。
+
+### 第二步:创建版本日志模板
+
+创建 `devlog/VERSION_LOG_TEMPLATE.md`,内容:
+
+```markdown
+# v{版本号} 开发日志
+
+**版本周期**: YYYY-MM-DD → 进行中
+**基线**: v{上一版本} (commit: {hash}) 或 "首个版本"
+
+---
+
+## YYYY-MM-DD
+
+### `{类型}({范围}): {描述}` · commit `{hash}`
+**问题**: (1-2 句说明遇到什么问题或为什么做这件事)
+**做法**: (1-2 句说明具体怎么做)
+**效果**: ✅/⚠️/❌/🔄 (1 句说明结果)
+
+### 其他变更
+- `{类型}({范围}): {描述}` (commit: {hash})
+
+---
+
+## 版本总结
+(仅在版本封版时填写,3-5 句话总结本版本的主要成果和遗留问题)
+```
+
+**格式纪律**:
+- 主要变更最多 4 行,拒绝啰嗦
+- 效果行必须带 emoji: ✅ 成功 / ⚠️ 部分 / ❌ 失败 / 🔄 待验证
+- 次要变更合并到"其他变更",只写一行
+- 按日期分组
+
+### 第三步:创建 devlog/versions/ 目录和 v1.0.0-dev.md
+
+创建目录 `devlog/versions/`,然后创建 `devlog/versions/v1.0.0-dev.md`。
+
+文件基于模板,但因为这是**追溯补写的已完成版本日志**,需要包含以下全部内容(按时间顺序):
+
+**版本信息**:
+- 版本周期: 从 Phase 1 开始的日期(从 git log 查找) → 今天
+- 基线: 首个版本
+
+**事件记录**(每个事件一条三段式记录,按时间顺序):
+
+1. Phase 1-7 的代码开发(每个 Phase 一条,"详见 phase-X-*.md"作为引用)
+2. Git 版本管理补全(git init、设置身份、首次 commit b032dd9)
+3. CLAUDE.md 创建(项目级行为准则)
+4. 日志体系的早期设计
+5. Phase 8: 代码集成 + README
+6. SAT Math 烟雾测试(Haiku 英文)
+7. 本次升级本身:版本日志体系建立(作为最后一条记录)
+
+**Phase 事件的引用格式示例**:
+```markdown
+### `feat(outline): Phase 4 宏观框架构建器` · 详见 phase-4-*.md
+**问题**: 需要让 Claude 调用 Brave Search 查询考纲,生成一级 Unit 列表。
+**做法**: 封装 Anthropic SDK 的 tool use,把 Brave Search 包装成 custom tool。
+**效果**: ✅ 成功生成 AP Calc BC 的 10 个 Unit。
+```
+
+**追溯注意事项**:
+- 从 git log 查找每个事件的 commit hash
+- 对于多次 commit 的 Phase,选最具代表性的那个 hash,或写 "(多次 commit)"
+- 追溯细节如有不清楚,诚实写 "(追溯补写,细节可能不全)" ,不要编造
+- 对于 git/CLAUDE.md/日志体系这类非 Phase 事件,不引用 phase-*.md(它们没有对应 Phase 文件)
+
+**版本总结**(文件末尾):
+写 5-8 句话的 v1.0.0 版本总结,涵盖:
+- 核心功能实现情况
+- 文档体系的建立(SPEC/PLAN/CLAUDE.md/devlog)
+- 工程化基础设施(git、虚拟环境)
+- 第一次端到端生成的结果
+- 遗留问题或改进方向
+
+写完后把整个 v1.0.0-dev.md 展示给我,等我评估追溯质量,确认后进入第四步。
+
+### 第四步:创建 VERSION 文件和 CHANGELOG.md
+
+**VERSION**: 单行文本文件,内容 `1.0.0`(末尾不加换行除外)
+
+**CHANGELOG.md**: 按 keepachangelog.com 格式,内容参考:
+
+```markdown
+# Changelog
+
+All notable changes to Exam-in-Mind will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.0.0] - YYYY-MM-DD
+
+First stable release. First successful end-to-end generation of AP Calculus BC knowledge tree.
+
+### Added
+- 命令行工具 `python -m exam_in_mind` 用于自动生成考试知识树
+- Brave Search API 集成,通过 Claude custom tool use 查询官方考纲
+- 分层知识结构构建(章 → 节 → 知识点 三级)
+- 叶子节点内容生成(定义 / 公式 / 易错点)
+- LaTeX 数学公式支持(通过 MkDocs arithmatex 扩展)
+- 断点续跑与 JSON 缓存机制
+- 双格式输出: MkDocs Material 静态站 + 单文件 Markdown
+- 完整的中文日志输出和 rich 进度条
+
+### Documentation
+- 完整的项目规格文档 (SPEC.md, PLAN.md)
+- 项目级 AI 助手行为准则 (CLAUDE.md)
+- 8 个 Phase 的开发日志
+- 版本开发日志体系
+
+### Verified
+- SAT Math smoke test (Haiku, English) - 烟雾测试通过
+```
+
+日期用今天的实际日期。
+
+### 第五步:创建 v1.0.1-dev.md 空文件
+
+创建 `devlog/versions/v1.0.1-dev.md`,基于模板,内容:
+
+- 版本周期: 今天的日期 → 进行中
+- 基线: v1.0.0 (commit: {从 git log 查到的 v1.0.0 最终 commit hash})
+- 事件记录: 暂无
+
+为下一次 commit 准备好记录空间。
+
+### 第六步:更新 CLAUDE.md
+
+在 CLAUDE.md 的 "📝 开发日志规则" 章节**替换**现有内容为以下新规则:
+
+---
+
+## 📝 开发日志规则
+
+本项目采用**双层日志体系**:
+
+### 1. Phase 日志(历史存档)
+
+文件位置: `devlog/phase-{编号}-{主题}.md`
+
+仅存在于 v1.0.0 开发期(Phase 1-8)的历史记录。v1.0.0 发布后**不再新增 Phase 日志**,现有文件作为历史存档永久保留。
+
+### 2. 版本开发日志(日常记录)
+
+文件位置: `devlog/versions/v{版本号}-dev.md`
+
+模板: `devlog/VERSION_LOG_TEMPLATE.md`
+
+**核心规则: 每次 commit 都要在版本日志里留痕。**
+
+**记录粒度**:
+
+| Commit 类型 | 记录方式 |
+|---|---|
+| `feat` 新功能 | 完整三段式(问题/做法/效果) |
+| `fix` bug 修复 | 完整三段式 |
+| `refactor` 重构 | 完整三段式 |
+| `perf` 性能 | 完整三段式 |
+| `docs` 文档 | 一行索引(除非是重要文档大改) |
+| `chore` 杂项 | 一行索引 |
+| `test` 测试 | 一行索引 |
+| `wip` 临时 | 一行索引 |
+
+**格式约束**:
+- 主要变更每条最多 4 行(标题 + 问题 + 做法 + 效果)
+- 效果行必须带 emoji: ✅ / ⚠️ / ❌ / 🔄
+- 按日期分组
+- 文字精炼,拒绝啰嗦
+
+**commit 与日志的同步**:
+
+每次代码变更的标准流程:
+1. 完成代码改动
+2. 更新 `devlog/versions/v{当前版本}-dev.md` 添加对应记录(初次不知道 hash,用占位符)
+3. 一起 `git add` 代码文件和日志文件
+4. `git commit` 后,**立刻**把占位符替换为真实 commit hash,再做一次 amend:
+```bash
+   git commit --amend --no-edit
+```
+   或者在下一次 commit 时补充修正
+
+**版本封版流程**:
+
+当一个版本准备发布时:
+1. 在 v{版本}-dev.md 文件末尾填写"版本总结"章节
+2. 把"版本周期"的"进行中"改为实际结束日期
+3. 更新 CHANGELOG.md 添加新版本条目
+4. 更新 VERSION 文件
+5. commit 变更,message: `chore(release): v{版本号}`
+6. 打 git tag: `git tag -a v{版本号} -m "{简短说明}"`
+7. 立即创建下一个版本的 dev 日志文件(`v{新版本}-dev.md`),留空等待填充
+
+---
+
+### 第七步:更新 devlog/README.md
+
+重写 `devlog/README.md`,说明新的双层日志体系。保持简洁,要包含:
+- 两种日志的职责分工(Phase 历史存档 vs 版本开发日志)
+- 目录结构示意
+- 命名规范
+- 各自对应的模板
+
+不超过 80 行。
+
+### 第八步:Commit 所有文档改动
+
+按 CLAUDE.md 的 git 规则,分**两次** commit:
+
+**Commit 1**(日志体系基础设施):
+```
+git add devlog/VERSION_LOG_TEMPLATE.md devlog/versions/ devlog/README.md CLAUDE.md
+git commit -m "docs(devlog): establish version-based dev log system"
+```
+
+**Commit 2**(v1.0.0 发布):
+```
+git add VERSION CHANGELOG.md devlog/versions/v1.0.0-dev.md
+git commit -m "chore(release): v1.0.0"
+```
+
+每次 commit 前用 `git status` 确认待提交文件,展示给我看,等我确认再提交。
+
+注意: v1.0.1-dev.md 作为"空文件占位",放在 Commit 1 里一起提交。
+
+### 第九步:打 v1.0.0 tag
+
+```bash
+git tag -a v1.0.0 -m "v1.0.0: First stable release with successful AP Calculus BC generation"
+```
+
+然后 `git tag` 验证 tag 已创建,告诉我 tag 列表。
+
+### 第十步:最终汇报
+
+给我一份完整的升级汇报:
+1. 创建/修改/删除的所有文件清单
+2. 两次 commit 的 hash
+3. v1.0.0 tag 的信息
+4. v1.0.0-dev.md 的总字数和事件记录条数
+5. CHANGELOG.md 的最终内容
+6. 你对"下一次 commit 该如何同步更新 v1.0.1-dev.md"的理解(用一段话描述标准流程)
+
+第 6 点很重要:我要确认你真的理解了新规则,而不是机械执行。
+
+---
+
+### 重要约束
+
+- **不要为了赶进度跳过追溯补写**。Phase 1-7 的事件必须在 v1.0.0-dev.md 里都有记录,哪怕每条很短
+- **不要编造细节**。记不清就诚实标注
+- **严禁修改 SPEC.md / PLAN.md / 现有的 phase-*.md**
+- **API key 永远不打印到对话**
+- **遇到 git 操作不确定时停下来问我**
