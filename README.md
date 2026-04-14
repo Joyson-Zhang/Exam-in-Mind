@@ -2,6 +2,14 @@
 
 > 面向考试科目的学习智能体 —— 自动构建分层知识树，输出为可离线浏览的 MkDocs 静态站 + 单文件 Markdown。
 
+## 在线预览
+
+无需安装即可浏览已生成的成果：
+
+- 🎓 [AP Calculus BC 知识树](https://joyson-zhang.github.io/Exam-in-Mind/ap_calculus_bc/)
+- 📐 [SAT Math 知识树](https://joyson-zhang.github.io/Exam-in-Mind/sat_math/)
+- 📚 [全部科目索引](https://joyson-zhang.github.io/Exam-in-Mind/)
+
 ## 特性
 
 - **一键生成**: 输入考试名称，自动联网查询考纲、构建三级知识树、生成详细讲解
