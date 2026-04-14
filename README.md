@@ -129,8 +129,8 @@ output:
 
 ```
 exam-in-mind/
-├── SPEC.md                    # 项目技术规格（架构、数据结构、流程定义）
-├── PLAN.md                    # 8 阶段实施计划与验收标准
+├── SPEC.md                    # 项目规格（身份、数据结构、流程）
+├── PLAN.md                    # 迭代期协作流程与 task 循环
 ├── CLAUDE.md                  # Claude Code 行为准则
 ├── README.md                  # 本文件
 ├── .env.example               # API Key 模板
@@ -155,7 +155,8 @@ exam-in-mind/
 │       └── mkdocs_renderer.py    # MkDocs 站点输出
 │
 ├── tests/                     # 单元测试
-├── devlog/                    # 开发日志（每个 Phase 的复盘记录）
+├── devlog/                    # 开发日志（versions/ 为当前版本日志，phase-*.md 为历史存档）
+├── archive/                   # 历史文档归档（建造期 PLAN、SPEC 原版、停用模板等）
 └── output/                    # 生成结果（.gitignore 排除）
 ```
 
@@ -214,11 +215,14 @@ python -m exam_in_mind --exam "SAT Math" --model claude-haiku-4-5-20251001
 
 | 文件 | 用途 |
 |---|---|
-| `SPEC.md` | 项目技术规格书，定义架构、数据结构、流程、边界 |
-| `PLAN.md` | 8 阶段实施计划，每个 Phase 的目标、交付物和验收标准 |
+| `SPEC.md` | 项目规格：身份、核心数据结构、核心流程 |
+| `PLAN.md` | 当前迭代期的协作流程与 task 循环说明 |
 | `CLAUDE.md` | Claude Code 行为准则，确保 AI 辅助开发时遵守项目规则 |
-| `devlog/` | 开发日志，记录每个 Phase 的决策过程和踩坑经验 |
+| `CHANGELOG.md` | 按 Keep a Changelog 规范记录每个版本的发布说明 |
+| `devlog/versions/` | 每个版本的日常开发日志（v1.0.0 之后的主力日志格式） |
+| `devlog/phase-*.md` | 建造期（v1.0.0 前 8 Phase）的详细复盘，只读历史存档 |
+| `archive/` | 历史文档归档：建造期 PLAN、停用模板、SPEC 原版备份等 |
 
 ## 关于本项目
 
-Exam-in-Mind 使用 [Claude Code](https://claude.ai/code) 辅助开发，全程遵循 SPEC.md 规格书和 PLAN.md 分阶段计划，由Joyson Zhang担任产品经理与验收官、AI 负责编码实现。开发过程记录在 `devlog/` 目录中。
+Exam-in-Mind 使用 [Claude Code](https://claude.ai/code) 辅助开发。建造期（v1.0.0 前）按 8 Phase 分阶段实施，发布后转入按 task 的持续迭代期（见 PLAN.md）。由 Joyson Zhang 担任产品经理与验收官、AI 负责编码实现。开发过程记录在 `devlog/` 目录中，历史文档归档在 `archive/`。

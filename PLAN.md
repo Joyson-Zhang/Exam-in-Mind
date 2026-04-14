@@ -1,361 +1,125 @@
-# Exam-in-Mind 分阶段实施计划 (PLAN)
+# Exam-in-Mind 协作与迭代流程 (PLAN)
 
-> 本计划把项目拆成 8 个 Phase。每个 Phase 必须停下来等用户验收后才能进入下一个。
-> 严禁连续执行多个 Phase。严禁跳过验收标准。
+> 本文件描述 v1.0.0 之后的开发协作流程。Claude Code 在本项目中的每次工作都按此文档执行。
+> 本文档可随 task 演进修改,改前与用户确认计划即可(等同于一次普通 task)。
 
-## 总览
+---
 
-| Phase | 目标 | 预计耗时 |
+## 1. 项目阶段定性
+
+| 阶段 | 状态 | 文档 |
 |---|---|---|
-| 1 | 项目脚手架 + 配置系统 | 15 min |
-| 2 | Brave Search 模块 + 工具封装 | 20 min |
-| 3 | 数据模型 + 缓存系统 | 15 min |
-| 4 | 宏观框架构建器(带搜索) | 25 min |
-| 5 | 递归分解器(level 2 → 3) | 25 min |
-| 6 | 叶子内容生成器 | 25 min |
-| 7 | Markdown + MkDocs 渲染器 | 25 min |
-| 8 | 主流程串联 + README + 端到端测试 | 30 min |
+| 建造期(v1.0.0 前) | 已结束(8 Phase 完成) | `archive/PLAN.v1.0-phases.md`(历史档案) |
+| 迭代期(v1.0+) | **当前阶段** | 本文档 |
+
+迭代期的特征:**按 task 推进,无固定路线**。需求/bug 来源是用户的真实使用体验,不做提前规划。
 
 ---
 
-## Phase 1: 项目脚手架 + 配置系统
+## 2. 工作单位:Task
 
-### 目标
-搭建项目骨架,让用户能装依赖、配置 API key、运行一个空的命令行入口。
+一个 task = 一次**范围可控**的改动,完成后能独立 commit。典型 task 的颗粒度:
 
-### 交付物
-- [ ] 完整的目录结构(按 SPEC 第 3 节)
-- [ ] `pyproject.toml`(列出所有依赖)
-- [ ] `.env.example` + `.gitignore`
-- [ ] `config.yaml`(按 SPEC 第 8 节)
-- [ ] `exam_in_mind/config.py` (用 pydantic-settings 加载 .env + yaml)
-- [ ] `exam_in_mind/main.py` (用 click 定义命令行参数,目前只打印参数)
-- [ ] 各子模块的空 `__init__.py` 和占位文件
+- 新功能:加一个 CLI 选项 / 加一个渲染样式 / 支持新的 prompt 模板
+- bug 修复:修一个报错 / 修一个渲染异常 / 修一个边界情况
+- 重构:改一个模块的职责划分 / 抽一个共享工具函数
+- 文档:更新一份指导文档 / 写一篇 devlog
 
-### 验收命令
-```bash
-pip install -e .
-python -m exam_in_mind --exam "AP Calculus BC" --verbose
+"顺手优化"、"主动重构"**不是**当前 task 的一部分,必须作为新 task 单独确认。
+
+---
+
+## 3. 标准 Task 循环
+
 ```
-应输出:加载到的配置内容 + 接收到的命令行参数,不报错。
-
-### 验收标准
-- 目录结构与 SPEC 第 3 节完全一致
-- 缺少 .env 时给出友好提示而非崩溃
-- 命令行 `--help` 能列出 SPEC 第 10 节的所有参数
-
----
-
-## Phase 2: Brave Search 模块 + 工具封装
-
-### 目标
-实现 Brave Search API 调用,并封装为 Claude 可调用的 custom tool。
-
-### 交付物
-- [ ] `exam_in_mind/brave_search.py`
-  - 函数 `search(query: str, count: int = 5) -> list[dict]`
-  - 返回 `[{title, url, description}, ...]`
-  - 处理 API 错误、限流、空结果
-- [ ] `exam_in_mind/tools.py`
-  - 定义 Claude tool schema: `search_web`
-  - 实现 tool dispatcher: 接收 Claude 的 tool_use 请求 → 调 brave_search → 返回 tool_result
-- [ ] `tests/test_brave_search.py`
-  - 至少 2 个测试: 正常查询、API key 错误处理(可 mock)
-
-### 验收命令
-```bash
-python -m exam_in_mind.brave_search "AP Calculus BC official CED"
-pytest tests/test_brave_search.py -v
-```
-应:打印出 5 条搜索结果,包含 title/url/description;测试全部通过。
-
-### 验收标准
-- Brave API 失败时不崩溃,打印警告并返回空列表
-- tool schema 符合 Anthropic tool use 规范
-
----
-
-## Phase 3: 数据模型 + 缓存系统
-
-### 目标
-实现知识树的 Pydantic 模型和 JSON 缓存读写。
-
-### 交付物
-- [ ] `exam_in_mind/models.py` (按 SPEC 第 4 节定义 KnowledgeNode / LeafContent / ExamTree)
-- [ ] `exam_in_mind/cache.py`
-  - `save_tree(tree: ExamTree, path: Path)` → 写 tree.json
-  - `load_tree(path: Path) -> ExamTree | None`
-  - `get_progress(tree: ExamTree) -> int` → 返回当前到第几步
-- [ ] `tests/test_models.py` + `tests/test_cache.py`
-  - 测试: 创建树 → 保存 → 加载 → 验证一致性
-
-### 验收命令
-```bash
-pytest tests/test_models.py tests/test_cache.py -v
+[1] 用户提出需求/bug
+        ↓
+[2] Claude 复述并确认范围,与用户共同设计修改计划
+    "我理解你想要 ___,改动会涉及 ___,确认开工?"
+        ↓
+[3] 用户审核通过修改计划后,Claude 实施
+    - 同步在 devlog/versions/v{当前}-dev.md 写记录(占位 hash)
+        ↓
+[4] Claude 完成报告:改了哪些文件、怎么验收、已知限制
+        ↓
+[5] 用户验收(Claude 辅助:提供验收命令、指明关注点)
+        ↓
+[6] commit(代码 + 日志一起 add,commit 后 amend 真实 hash)
 ```
 
-### 验收标准
-- Pydantic 模型严格符合 SPEC 第 4 节
-- tree.json 是人类可读的(indent=2, ensure_ascii=False)
-- 加载损坏的 JSON 时给友好错误,不崩溃
+### 循环内的硬规则
+
+- **开工前必须确认计划和范围**,不擅自扩大
+- 实施过程中若发现计划之外的问题,**停下来询问**用户,不自行处理
+- 每次 commit 都必须在 `devlog/versions/v{当前}-dev.md` 留痕(记录粒度见 CLAUDE.md)
 
 ---
 
-## Phase 4: 宏观框架构建器
+## 4. 版本封版
 
-### 目标
-实现"调用 Claude + Brave Search,生成一级 Unit 列表"。
+**判断权在用户**。Claude 不自动判断"该发版了",但可在合适时机给封版建议。
 
-### 交付物
-- [ ] `exam_in_mind/llm_client.py`
-  - 封装 Anthropic API 调用
-  - 支持 tool use 循环(收到 tool_use → 执行 → 返回 tool_result → 再调 Claude)
-  - 强制 JSON 输出(用 tool use 模式)
-- [ ] `exam_in_mind/prompts.py`
-  - `OUTLINE_BUILDER_PROMPT`: 让 Claude 调用 search_web 查询考纲并返回 level=1 节点 JSON
-- [ ] `exam_in_mind/builders/outline_builder.py`
-  - 函数 `build_outline(exam_name: str, lang: str) -> list[KnowledgeNode]`
-  - 启用 search_web 工具
-  - 返回带 level=1 的节点列表(children 为空)
-- [ ] 集成到 `main.py`: 命令行跑完后保存 tree.json
+### Claude 应主动给封版建议的时机
 
-### 验收命令
-```bash
-python -m exam_in_mind --exam "AP Calculus BC" --lang zh
-```
-应:看到搜索调用日志 → 生成 8-12 个一级 Unit → 写入 `output/ap_calculus_bc/tree.json`。
+- 积累 ≥5 个 fix / feat,功能上自然形成一批
+- 出现破坏性或不兼容改动**之前**,先锁定当前稳定版本
+- 距上次发版时间较长(如 >2 周),想立个稳定快照
+- 即将开始大块重构或架构级改动
 
-### 验收标准
-- tree.json 中有 root_nodes,每个节点 level=1, title 是合理的 AP Calc BC Unit 名
-- 节点的 importance 已合理填充
-- 控制台日志清晰显示每一步进展
+### 封版流程(沿用 CLAUDE.md 既有约定)
+
+1. 在 `devlog/versions/v{版本}-dev.md` 文件末尾填写"版本总结"
+2. 把版本周期的"进行中"改为实际结束日期
+3. 更新 `CHANGELOG.md` 添加新版本条目
+4. 更新 `VERSION` 文件
+5. commit,message:`chore(release): v{版本号}`
+6. 打 tag:`git tag -a v{版本号} -m "{简短说明}"`
+7. 立即创建下一个版本的 dev 日志文件
 
 ---
 
-## Phase 5: 递归分解器
+## 5. 分支策略
 
-### 目标
-把 level=1 的树扩展到 level=3 (章 → 节 → 知识点)。
+**默认在 `main` 直推**(单人项目 + 用户作审查官,PR 流程反而是负担)。
 
-### 交付物
-- [ ] `exam_in_mind/prompts.py` 新增:
-  - `EXPAND_TO_LEVEL_2_PROMPT` (输入父节点 + 兄弟节点列表)
-  - `EXPAND_TO_LEVEL_3_PROMPT`
-- [ ] `exam_in_mind/builders/tree_builder.py`
-  - `expand_to_level_2(tree: ExamTree) -> ExamTree`
-  - `expand_to_level_3(tree: ExamTree) -> ExamTree`
-  - 每完成一个父节点保存一次快照
-  - 进度条(用 rich)
-- [ ] `main.py` 串联: outline → level_2 → level_3,每步保存
+### Claude 应主动提醒切 feature branch 的信号
 
-### 验收命令
-```bash
-python -m exam_in_mind --exam "AP Calculus BC" --lang zh
-```
-应:看到层层扩展的进度条;最终 tree.json 中每个一级节点下有 4-8 个二级节点,每个二级下有 3-6 个三级节点。
+遇到以下情况时,Claude 在实施前提醒用户"此 task 建议切 feature branch",由用户决定:
 
-### 验收标准
-- 不重复生成同名节点
-- 节点 id 编号正确(如 "2.3.1")
-- 中断后重跑能从断点继续(测试: 跑到一半 Ctrl+C, 重新跑应继续)
+- 改动涉及**架构级重构**(预计影响 ≥3 个模块)
+- 风险较高的外部 API 集成尝试(可能需要反复回滚)
+- 需要**并行维护**多个方向的实验
+- 用户明确表示"这个改动如果失败要能快速回退"
+
+Claude **不擅自创建** branch;切与不切由用户拍板。
 
 ---
 
-## Phase 6: 叶子内容生成器
+## 6. 文档的可修改性
 
-### 目标
-为每个 level=3 叶子节点生成 LeafContent(定义、公式、易错点)。
-
-### 交付物
-- [ ] `exam_in_mind/prompts.py` 新增 `GENERATE_LEAF_CONTENT_PROMPT`
-- [ ] `exam_in_mind/builders/content_builder.py`
-  - `generate_all_leaves(tree: ExamTree) -> ExamTree`
-  - 遍历所有 level=3 节点,调用 Claude 生成 LeafContent
-  - 强制 JSON 输出
-  - 每完成 5 个节点保存一次快照
-  - rich 进度条显示 X/Y
-- [ ] `main.py` 串联
-
-### 验收命令
-```bash
-python -m exam_in_mind --exam "AP Calculus BC" --lang zh
-```
-应:看到 "生成叶子内容 45/120" 之类的进度;最终 tree.json 每个叶子节点的 content 字段已填充。
-
-### 验收标准
-- 公式字段使用合法 LaTeX(如 `$\\frac{d}{dx}f(x)$`)
-- 易错点至少 2 条
-- 中断恢复正常工作
+| 文档 | 修改门槛 |
+|---|---|
+| `PLAN.md`(本文件) | 与 task 改动同等对待,改前确认计划即可 |
+| `SPEC.md` | 与 task 改动同等对待,改前确认计划即可 |
+| `CLAUDE.md` | 与 task 改动同等对待,改前确认计划即可 |
+| `archive/` 下的历史文件 | **只读**,永不修改(历史档案) |
+| `devlog/phase-*.md` | **只读**,建造期历史存档 |
+| `devlog/versions/v{已封版}-dev.md` | **只读**,已封版 |
+| `devlog/versions/v{当前}-dev.md` | 每次 commit 必须追加记录 |
+| `CHANGELOG.md` | 仅在封版时追加新版本条目 |
+| `VERSION` | 仅在封版时修改 |
 
 ---
 
-## Phase 7: Markdown + MkDocs 渲染器
+## 7. 参考文档
 
-### 目标
-把 tree.json 渲染成 full.md 和 MkDocs 静态站。
-
-### 交付物
-- [ ] `exam_in_mind/renderers/markdown_renderer.py`
-  - `render_full_markdown(tree: ExamTree, output_path: Path)`
-  - 单文件,有目录、章节标题、LaTeX 公式
-- [ ] `exam_in_mind/renderers/mkdocs_renderer.py`
-  - `render_mkdocs_site(tree: ExamTree, output_dir: Path)`
-  - 生成 `mkdocs.yml`(配置 Material 主题、KaTeX、搜索)
-  - 生成 `docs/` 目录下的分文件 Markdown
-  - 调用 `mkdocs build` 命令生成 site/
-- [ ] `main.py` 末尾调用两个渲染器
-
-### 验收命令
-```bash
-python -m exam_in_mind --exam "AP Calculus BC" --lang zh
-# 然后双击 output/ap_calculus_bc/site/index.html
-```
-应:浏览器打开看到带左侧目录树的网站,公式正确渲染,搜索框可用。`full.md` 用 VS Code 打开内容完整。
-
-### 验收标准
-- mkdocs.yml 正确配置 arithmatex 用于 LaTeX
-- 章节文件路径符合 `docs/01-unit-name/01-section-name/01-knowledge-point.md`
-- site/ 完全离线可用(不依赖 CDN, 或至少能正常显示)
+- `SPEC.md` —— 项目身份、核心数据结构、核心流程(运行时合约)
+- `CLAUDE.md` —— Claude Code 在本项目的行为准则(commit 规则、安全红线、devlog 规则、常用命令、架构速览)
+- `README.md` —— 面向用户的安装与使用说明
+- `CHANGELOG.md` —— 按 Keep a Changelog 规范记录每个版本的发布说明
+- `devlog/versions/` —— 每个版本的日常开发日志(三段式)
+- `archive/` —— 建造期的历史文档(旧 PLAN、Phase 日志模板、SPEC 原版备份等)
 
 ---
 
-## Phase 8: 主流程串联 + README + 端到端测试
-
-### 目标
-最终整理,生成 README,跑一次完整流程验收。
-
-### 交付物
-- [ ] `README.md`
-  - 项目简介
-  - 安装步骤(含 .env 配置)
-  - 使用示例
-  - 常见问题
-  - 项目结构图
-- [ ] 检查 main.py 整体流程清晰、日志完整
-- [ ] 跑一次完整的 AP Calculus BC 生成
-- [ ] 检查所有产出物符合 SPEC 第 11 节
-
-### 验收命令
-```bash
-# 删除旧产出
-rm -rf output/
-
-# 全新一次端到端
-python -m exam_in_mind --exam "AP Calculus BC" --lang zh
-
-# 验证产出
-ls output/ap_calculus_bc/
-# 应有: site/ docs/ full.md tree.json mkdocs.yml run.log
-```
-
-### 验收标准
-按 SPEC 第 14 节"整体验收标准"逐条检查通过。
-
----
-
-## 通用规则(每个 Phase 都适用)
-
-1. **开始 Phase 前**: 用一两句话告诉用户"我现在开始 Phase X,目标是 ___,将创建/修改这些文件: ___"
-2. **执行中**: 遇到任何与 SPEC 不符的情况,停下来询问用户,不要自作主张
-3. **结束 Phase 后**: 输出本 Phase 的"完成报告":
-   - 创建/修改了哪些文件
-   - 如何运行验收命令
-   - 已知的局限或待办
-4. **不要连续执行多个 Phase**。等用户明确说"通过,进入 Phase X+1"才继续。
-5. **不要修改 SPEC.md 和 PLAN.md**,如需变更先与用户讨论。
-6. **Git Commit 规则**
-
-   每个 Phase 必须严格遵守"代码与日志分离 commit"原则。具体如下:
-
-   **6.1 强制 commit 时机(以下时机必须立刻 commit,无需用户提醒):**
-
-   - 每个 Phase 开始前:如果工作区有未提交改动,先 commit 锁定上一个状态
-   - 每个新文件创建并写完初版后
-   - 任何破坏性操作前(重写超过 50% 的现有文件、删除文件、重构目录)
-   - 每次成功跑通一个验收命令后
-   - 每次 bug 修复完成后
-   - 在上一次存档后连续工作超过 30 分钟时(兜底机制)
-   - Phase 内每完成一个明显的子任务时
-   - Phase 最终完成时(代码 commit + 日志 commit + 打 tag)
-
-   **6.2 commit message 格式:**
-
-   ```
-   <类型>(<范围>): <简短描述>
-   ```
-
-   类型必须是以下之一:
-   - `feat`: 新功能
-   - `fix`: bug 修复
-   - `refactor`: 重构(不改功能)
-   - `docs`: 文档或 devlog
-   - `chore`: 依赖、配置等杂项
-   - `test`: 测试相关
-   - `wip`: 临时存档(仅在 30 分钟兜底 commit 时使用)
-
-   范围用模块名(如 `builders`, `renderers`, `models`),或文档类型(如 `devlog`, `spec`)。
-
-   **6.3 代码与日志分离原则:**
-
-   代码改动和 devlog 改动**永远不能混在同一个 commit 里**。具体做法:
-
-   - 写代码时:`git add` 时只 add 代码相关文件,不要 add devlog/
-   - 写日志时:`git add devlog/` 单独提交
-   - Phase 完成时,顺序是:先 commit 代码 → 用户验收 → 写 devlog → commit devlog → 打 tag
-
-   **6.4 Phase 完成的标准 commit 序列:**
-
-   ```bash
-   # 1. 代码完成,所有验收通过后
-   git add <代码相关文件>
-   git commit -m "feat(<模块>): Phase X implementation complete"
-
-   # 2. 等待用户验收
-
-   # 3. 用户验收通过后,写 devlog
-   # (此时只修改 devlog/ 下的文件)
-
-   # 4. 提交 devlog
-   git add devlog/
-   git commit -m "docs(devlog): Phase X retrospective"
-
-   # 5. 打 tag 标记 Phase 完成
-   git tag phase-X-complete
-
-   # 6. 向用户汇报:本 Phase 的代码 commit hash、devlog commit hash、tag 名称
-   ```
-
-   **6.5 commit 前必检项:**
-
-   每次 commit 前必须执行 `git status` 并确认:
-   - `.env` 文件不在待提交列表中
-   - `output/` 目录不在待提交列表中
-   - `.venv/` 不在待提交列表中
-   - 待提交的文件类型与 commit message 的"类型"一致(代码 commit 不混进日志,反之亦然)
-
-   如果发现异常,停下来询问用户,不要擅自处理。
-
-7. **Tag 规则**
-
-   - 每个 Phase 完成时打一个 tag,格式 `phase-X-complete`
-   - 重要里程碑可以打额外的 tag,如 `v0.1-mvp`、`first-successful-run`
-   - 打 tag 前确认当前 commit 已经是 Phase 的最终状态
-
-8. **工作区保护**
-
-   - 严禁使用 `git reset --hard`,任何回退操作必须先与用户确认
-   - 严禁使用 `git push --force`(虽然我们目前没有远程仓库)
-   - 严禁使用 `git clean -fd` 删除未追踪文件,除非用户明确要求
-
-9. **应急恢复**
-
-   如果用户表示"想回到之前的状态",默认采用"非破坏性回退"策略:
-
-   1. 先 `git log --oneline` 让用户选择目标 commit
-   2. 询问用户:是要"完全回退所有文件"还是"只回退代码,保留 devlog"?
-   3. 推荐"只回退代码"方案,因为它能保留失败经验作为博客素材
-   4. 操作前再次确认,用户明确同意后才执行
-   5. 操作后立刻 commit 当前状态作为新的历史节点(message: `chore(rollback): rollback code to <hash>, retain devlog`)
-
-10. **SPEC 补丁机制**: Claude 可以主动提出合理要求作为 SPEC 的补丁,但在征得用户同意前不得直接更改。
-11. **开发日志**: 每个 Phase 结束、用户确认"通过"之后,立刻基于 `devlog/TEMPLATE.md` 创建本 Phase 的日志文件 `devlog/phase-{编号}-{简短主题}.md` 并填写完成。日志写完后再等用户说"开始下一个 Phase"。写日志只能修改 `devlog/` 下的文件,不得修改任何代码或配置文件;如发现代码问题,记录在"给下一个 Phase 的提醒"中。
+**本文档的底线**:当 Claude 不确定该怎么做时,默认选择是 **"停下来问用户"**,而不是"自己发挥"。

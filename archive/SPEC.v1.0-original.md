@@ -1,11 +1,6 @@
 # Exam-in-Mind 项目规格说明书 (SPEC)
 
-> 本文件描述项目身份、核心数据结构和核心流程,供开发时参考。
-> 本文档可随 task 演进修改,改前与用户确认计划即可。建造期(v1.0.0 前)的完整硬约束版本已归档至 `archive/SPEC.v1.0-original.md`。
-
-## 0. 项目协作约束
-
-每个 task 实际开工前,Claude 必须与用户确认修改计划和范围,不擅自扩大。完整协作流程见 `PLAN.md`。
+> 本文件是项目的"宪法"。所有技术选型和架构决策已固定,实现时不得擅自更改。如需变更,必须先与用户确认。
 
 ## 1. 项目目标
 
@@ -17,9 +12,7 @@
 
 **首期测试科目**: AP Calculus BC
 
-## 2. 技术栈(当前使用,供参考)
-
-以下是 v1.0.0 实际采用的技术栈。新增/更换依赖需作为独立 task 与用户确认。
+## 2. 技术栈(已固定,不得更改)
 
 | 类别 | 选型 | 说明 |
 |---|---|---|
@@ -36,16 +29,13 @@
 | 日志 | `rich` | 进度条 + 彩色日志 |
 | 测试 | `pytest` | 仅核心模块需要测试 |
 
-## 3. 项目目录结构(当前布局,供参考)
+## 3. 项目目录结构(必须遵守)
 
 ```
 exam-in-mind/
 ├── SPEC.md                    # 本文件
-├── PLAN.md                    # 迭代期协作流程与 task 循环
-├── CLAUDE.md                  # Claude Code 行为准则
-├── CHANGELOG.md               # 版本发布记录
-├── VERSION                    # 当前版本号
-├── README.md                  # 用户使用说明
+├── PLAN.md                    # 分阶段实施计划
+├── README.md                  # 用户使用说明(Phase 8 生成)
 ├── .env.example               # API key 模板
 ├── .env                       # 实际 API key(gitignore)
 ├── .gitignore
@@ -64,9 +54,9 @@ exam-in-mind/
 │   ├── prompts.py             # 所有 prompt 模板
 │   ├── builders/
 │   │   ├── __init__.py
-│   │   ├── outline_builder.py    # 宏观框架构建器(Step 3:联网查考纲)
-│   │   ├── tree_builder.py       # 递归分解器(Step 4-5:扩到 level=2/3)
-│   │   └── content_builder.py    # 叶子内容生成器(Step 6:生成 LeafContent)
+│   │   ├── outline_builder.py    # 宏观框架构建器(Phase 4)
+│   │   ├── tree_builder.py       # 递归分解器(Phase 5)
+│   │   └── content_builder.py    # 叶子内容生成器(Phase 6)
 │   └── renderers/
 │       ├── __init__.py
 │       ├── markdown_renderer.py  # 单文件 Markdown 输出
@@ -259,8 +249,36 @@ python -m exam_in_mind \
 | `mkdocs.yml` | MkDocs 配置文件 |
 | `run.log` | 本次运行日志 |
 
----
+## 12. 代码规范
 
-*v1.0.0 建造期的代码规范、不做的事清单、整体验收标准已移除。*
-*这些硬约束已被"每个 task 开工前确认计划"的协作方式取代(见 §0 和 `PLAN.md`)。*
-*完整建造期版本仍保留在 `archive/SPEC.v1.0-original.md` 供参考。*
+- **注释**: 中文注释,关键函数必须有 docstring 说明用途、参数、返回值
+- **类型标注**: 所有函数必须有完整 type hints
+- **错误处理**: API 调用必须 try/except,失败时打印清晰错误信息
+- **日志**: 使用 `rich.console.Console` 输出彩色日志,关键步骤打印进度
+- **常量**: prompt 模板放 `prompts.py`,不写死在业务代码里
+- **避免**: 不要引入 SPEC 未列出的新依赖;不要自作主张加 Web 界面、数据库、ORM
+
+## 13. 不做的事(明确边界)
+
+- ❌ 不做 Web 界面(Streamlit/Gradio/FastAPI)
+- ❌ 不做用户系统、登录、多用户隔离
+- ❌ 不做数据库(JSON 文件够用)
+- ❌ 不做 Docker 化
+- ❌ 不做 CI/CD
+- ❌ 不生成图片(连 Mermaid 都暂不做)
+- ❌ 不做前置知识依赖图(prerequisites)
+- ❌ 不做单元测试以外的复杂测试体系
+
+## 14. 验收标准(整体)
+
+项目完成后,执行:
+```bash
+python -m exam_in_mind --exam "AP Calculus BC"
+```
+应能:
+1. 不报错地跑完全流程
+2. 生成的 `site/index.html` 用浏览器打开后,左侧有完整的章/节/知识点树
+3. 每个知识点页面有定义、公式(LaTeX 正确渲染)、易错点
+4. 顶部搜索框可搜索关键词
+5. `full.md` 可被 VS Code / Obsidian 正常打开
+6. 重新运行同一命令时,提示"检测到缓存,是否复用"

@@ -10,30 +10,33 @@ Exam-in-Mind 是一个面向特定考试科目的学习智能体,目标是自动
 
 开始任何工作前,先确认你已熟悉以下文档:
 
-- **SPEC.md** — 项目技术规格(架构、技术栈、数据结构、目录结构)。**不可修改**,如需变更必须先与用户讨论。
-- **PLAN.md** — 8 个 Phase 的实施计划和验收标准。**不可修改**。
-- **devlog/** — 每个 Phase 完成后的开发日志,用于复盘和未来的博客素材。
+- **PLAN.md** — 当前迭代期的协作流程与 task 循环说明。可随 task 演进修改。
+- **SPEC.md** — 项目身份、核心数据结构、核心流程。可随 task 演进修改。
+- **devlog/versions/v{当前}-dev.md** — 当前版本的日常开发日志,每次 commit 必须同步维护。
+- **archive/PLAN.v1.0-phases.md** — 建造期(v1.0.0 前 8 Phase)历史档案,仅供回顾。
+- **devlog/phase-1~8-*.md** — 建造期各 Phase 的详细复盘,只读历史存档。
 
-如果你不确定某个技术决策,**先去 SPEC.md 找答案**,而不是自己发挥。
+如果你不确定某个技术决策,**先去 SPEC.md 找答案**;不确定流程问题,**先去 PLAN.md 找答案**,而不是自己发挥。
 
 ## 🚦 核心工作原则
 
-### 1. 严格分阶段
-- 一次只做一个 Phase,**严禁连续执行多个 Phase**
-- 每个 Phase 完成后停下来等用户验收,绝不擅自进入下一个
-- 每个 Phase 开始前,先向用户说明:"我现在开始 Phase X,目标是 ___,将创建/修改这些文件: ___"
+### 1. 严格按 task 边界工作
+- 每个 task 开工前必须与用户确认修改计划和范围(PLAN.md §3 的 6 步循环)
+- 不擅自扩大改动范围——"顺手优化"、"主动重构"都属于**新的** task,必须单独确认
+- Task 实施过程中发现计划外的问题,**停下来问用户**,不自行处理
+- 不连续执行多个 task,每个 task 完成后等用户验收
 
 ### 2. 不越界
-- 不引入 SPEC 第 2 节技术栈列表之外的依赖
-- 不做 SPEC 第 13 节"不做的事"列表里的任何事(尤其是 Web 界面、数据库、Docker)
-- 遇到 SPEC 没明确规定的情况,**停下来问用户**,不要自作主张
-- "顺手优化"和"主动重构"必须先经过用户同意
+- 新增/更换依赖必须作为独立 task 与用户确认
+- 遇到 SPEC / PLAN 没明确规定的情况,**停下来问用户**,不要自作主张
+- 需要改动 `PLAN.md` / `SPEC.md` / `CLAUDE.md` 本身时,与普通 task 同等对待(改前确认计划)
+- `archive/` 和 `devlog/phase-*.md` 等历史档案**只读**,永不修改
 
 ### 3. 沟通透明
 - 所有解释和报告使用**中文**
 - 代码注释使用**中文**,关键函数必须有 docstring
 - 遇到报错时,**先解释原因,再修复**,绝不盲目重试
-- 完成每个 Phase 后给一份完整的"完成报告":创建/修改了哪些文件、如何验收、已知局限
+- 完成每个 task 后给一份"完成报告":创建/修改了哪些文件、如何验收、已知局限
 
 ## 💾 Git 版本管理规则
 
@@ -43,8 +46,8 @@ Exam-in-Mind 是一个面向特定考试科目的学习智能体,目标是自动
 - 每次成功跑通一个验收命令后
 - 每次 bug 修复完成后
 - 连续工作超过 30 分钟时(兜底机制,以你的感知为准)
-- Phase 内每完成一个明显的子任务时
-- Phase 最终完成时(代码 commit + 等用户验收 + devlog commit + 打 tag)
+- Task 内每完成一个明显的子任务时(函数级别 / 文件级别)
+- Task 最终完成时(代码 commit + devlog 同步;如需发版再走封版流程)
 
 ### Commit message 格式
 ```
@@ -54,37 +57,38 @@ Exam-in-Mind 是一个面向特定考试科目的学习智能体,目标是自动
 类型必须是: `feat` / `fix` / `refactor` / `docs` / `chore` / `test` / `wip`
 
 示例:
-- `feat(builders): implement outline_builder with Brave Search`
+- `feat(renderer): add scroll arrow buttons to top navigation tabs`
 - `fix(content_builder): handle empty LaTeX formula list`
-- `docs(devlog): write Phase 5 retrospective`
+- `docs(devlog): record sidebar scroll fix in v1.0.1`
 
-### 代码与日志严格分离
-**代码改动和 devlog 改动永远不能在同一个 commit 里。**
+### 代码与版本日志的处理
 
-Phase 完成的标准 commit 序列:
+迭代期的日志模式(详见 PLAN.md §3 循环 [6] 和"📝 开发日志规则"):
+**代码 + 版本日志(`devlog/versions/v{当前}-dev.md`)可以在同一 commit 里一起 add**,commit 后 amend 真实 hash 到占位符。
+
+Task 完成的标准 commit 序列:
 ```bash
 # 1. 代码完成,验收通过
-git add <代码文件>
-git commit -m "feat(<模块>): Phase X implementation complete"
+#    同时确认 devlog/versions/v{当前}-dev.md 已追加记录(hash 先用占位符)
+git add <代码文件> devlog/versions/v{当前}-dev.md
+git commit -m "<type>(<scope>): <简短描述>"
 
-# 2. 等用户验收
+# 2. 用真实 hash 替换占位符,amend
+git commit --amend --no-edit
+#   (或在下一次 commit 里补修正)
 
-# 3. 验收通过后写 devlog
-
-# 4. 单独 commit devlog
-git add devlog/
-git commit -m "docs(devlog): Phase X retrospective"
-
-# 5. 打 tag
-git tag phase-X-complete
+# 3. 若达到封版条件(用户拍板),才走封版流程:
+#    更新 CHANGELOG.md、VERSION、打 v{版本号} tag、新建下一版本 dev 日志
 ```
+
+> **历史说明**:v1.0.0 建造期采用"代码 commit → 等验收 → devlog 单独 commit → 打 phase-X-complete tag"的严格分离模式。该模式已归档,迭代期不再使用 `phase-X-complete` tag。
 
 ### Commit 前必检
 执行 `git status` 并确认:
 - `.env` 不在待提交列表
 - `output/` 不在待提交列表  
 - `.venv/` 不在待提交列表
-- 待提交文件类型与 commit message 类型一致(代码不混日志,反之亦然)
+- 待提交文件与 commit message 的"类型+范围"描述吻合(代码改动 + 同次 task 对应的版本日志记录可在同一 commit;但不要把**无关**的文件打包混提)
 
 异常情况停下来问用户,不要擅自处理。
 
@@ -93,28 +97,28 @@ git tag phase-X-complete
 - ❌ 不执行 `git reset --hard` 或 `git push --force`
 - ❌ 不执行 `git clean -fd` 或类似删除未追踪文件的命令
 - ❌ 不在对话中显示 `.env` 文件的内容或任何 API key
-- ❌ 不删除 SPEC.md / PLAN.md / devlog/ 下的任何文件
+- ❌ 不删除 SPEC.md / PLAN.md / CLAUDE.md / devlog/ / archive/ 下的任何文件
 - ❌ 不修改用户已经手动编辑过的配置文件(除非用户明确要求)
 
 需要执行任何危险操作前,**先描述意图并等用户确认**。
 
 ## 📝 开发日志规则
 
-本项目采用**双层日志体系**:
+本项目采用**双层日志体系**,当前只写第 1 类:
 
-### 1. Phase 日志(历史存档)
-
-文件位置: `devlog/phase-{编号}-{主题}.md`
-
-仅存在于 v1.0.0 开发期(Phase 1-8)的历史记录。v1.0.0 发布后**不再新增 Phase 日志**,现有文件作为历史存档永久保留。
-
-### 2. 版本开发日志(日常记录)
+### 1. 版本开发日志(当前在用)
 
 文件位置: `devlog/versions/v{版本号}-dev.md`
 
 模板: `devlog/VERSION_LOG_TEMPLATE.md`
 
 **核心规则: 每次 commit 都要在版本日志里留痕。**
+
+### 2. Phase 日志(历史存档,只读)
+
+文件位置: `devlog/phase-{编号}-{主题}.md`(及对应模板 `archive/devlog-TEMPLATE.phase.md`)
+
+仅存在于 v1.0.0 开发期(Phase 1-8)的历史记录。**v1.0.0 发布后不再新增 Phase 日志**,现有文件作为历史存档永久保留,不得修改。
 
 **记录粒度**:
 
@@ -177,19 +181,78 @@ git tag phase-X-complete
 - 包安装: `pip install -e ".[dev]"`
 - 主命令: `python -m exam_in_mind --exam "<考试名>" --lang zh`
 
+## 🛠️ 常用命令
+
+```bash
+# 安装(含开发依赖)
+pip install -e ".[dev]"
+
+# 主入口(等价于 console script `exam-in-mind`)
+python -m exam_in_mind --exam "AP Calculus BC" --lang zh
+
+# 常用调试组合
+python -m exam_in_mind --exam "SAT Math" --model claude-haiku-4-5-20251001 --no-search --verbose
+python -m exam_in_mind --exam "AP Calculus BC" --restart   # 忽略缓存重跑
+
+# 测试(pyproject 已设 testpaths=["tests"])
+pytest                                  # 全量
+pytest tests/test_cache.py              # 单文件
+pytest tests/test_models.py::test_xxx   # 单用例
+pytest -k "brave" -v                    # 关键字过滤
+
+# 仅渲染(手动改完 tree.json 后)— 通过 --restart 反向操作不行,
+# 需直接调用 renderer 模块或保留 tree.json 让程序识别断点
+mkdocs serve -f output/<slug>/mkdocs.yml   # 本地预览生成的站点
+```
+
+注意:本仓库**没有配置 lint/format 工具**(无 ruff/black/mypy),不要假设它们存在。
+
+## 🏗️ 架构速览
+
+整个流水线是**线性 8 步 + JSON 快照断点**(详见 SPEC.md §5),代码按职责分层:
+
+```
+main.py (CLI入口)
+  └─ config.py  ← .env + config.yaml(pydantic-settings)
+  └─ cache.py   ← output/<slug>/tree.json 读写 + 断点检测
+  └─ builders/  ← 三段式构建,每段产出后立即写快照
+       ├─ outline_builder    Step 3: 联网查考纲 → level=1 节点
+       ├─ tree_builder       Step 4-5: 递归扩到 level=2、level=3
+       └─ content_builder    Step 6: 叶子节点生成 LeafContent
+  └─ renderers/ ← 同一棵 ExamTree 双格式渲染
+       ├─ markdown_renderer  → full.md
+       └─ mkdocs_renderer    → docs/ + mkdocs.yml + site/
+```
+
+**横切依赖**:
+- `llm_client.py`:封装 Anthropic SDK,负责 tool-use 循环(供 outline_builder 调用 search)
+- `brave_search.py`:Brave API 原始封装(httpx);失败时降级为 no-search,不中断
+- `tools.py`:把 brave_search 包装成 Claude 自定义工具 `search_web`
+- `prompts.py`:**所有** prompt 模板集中在此,业务代码不许写死字符串
+- `models.py`:`KnowledgeNode` / `LeafContent` / `ExamTree`(pydantic v2,递归结构)
+
+**核心数据流**:从头到尾只有一个对象在传递 —— `ExamTree`。每个 builder 接收上一步的树,**就地扩展**而非重建,保证断点续跑时拿同一份 `tree.json` 能从任意 step 继续。
+
+**搜索的边界**:Brave Search **只在 outline_builder 启用**(SPEC §6)。tree_builder 和 content_builder 一律关闭联网,纯靠模型内置知识 + 父节点上下文。改动这条边界前必须先和用户确认。
+
+**配置三层叠加优先级**(高 → 低):CLI 参数 > `config.yaml` > 代码默认值。`.env` 只放 secret(2 个 key)。
+
 ## 🤝 与用户的互动节奏
 
 用户角色: 产品经理 + 验收官,不一定写代码,但所有决策由他做出。
 
-每个 Phase 的标准节奏:
-1. 你说: "开始 Phase X,计划 ___,等我开工指令"
-2. 用户: "开始" 或 "先调整 ___"
-3. 你: 写代码 + 中途按规则 commit + 完成报告
-4. 用户验收
-5. 你: 写 devlog + commit devlog + 打 tag + 汇报 hash 和 tag
-6. 用户: "通过,开始 Phase X+1"
+每个 task 的标准 6 步循环(完整定义见 `PLAN.md` §3):
 
-不在节奏内的事(比如新需求、规则变更),先停下来确认。
+1. **用户提出需求/bug**
+2. **Claude 复述并确认范围,与用户共同设计修改计划**
+   `"我理解你想要 ___,改动会涉及 ___,确认开工?"`
+3. **用户审核通过修改计划后,Claude 实施**
+   - 同步在 `devlog/versions/v{当前}-dev.md` 写记录(hash 用占位符)
+4. **Claude 完成报告**:改了哪些文件、怎么验收、已知限制
+5. **用户验收**(Claude 辅助:提供验收命令、指明关注点)
+6. **commit**(代码 + 日志一起 add,commit 后 amend 真实 hash)
+
+不在节奏内的事(比如新需求、规则变更、顺手优化),**先停下来确认**,作为新 task 处理。
 
 ---
 
